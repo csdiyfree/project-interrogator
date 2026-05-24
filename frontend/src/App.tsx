@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  NavLink,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { InfoPage } from './pages/InfoPage';
 import { UploadPage } from './pages/UploadPage';
 import { InterrogationPage } from './pages/InterrogationPage';
 import { GuidePage } from './pages/GuidePage';
+import { LoginPage } from './pages/LoginPage';
 import { listResumes } from './api/endpoints';
+import { clearSession, isLoggedIn } from './lib/session';
 
 /** 无文案品牌徽标:暖陶土方印 + 内嵌「问/探」式同心弧。 */
 function BrandMark({ size = 34 }: { size?: number }) {
@@ -67,6 +78,27 @@ function UploadIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function LogoutIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M14 6V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 12h10m0 0-3.2-3.2M20 12l-3.2 3.2"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 const navBase = 'flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200';
 
 function navCls({ isActive }: { isActive: boolean }) {
@@ -77,6 +109,7 @@ function navCls({ isActive }: { isActive: boolean }) {
 
 function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   // 仅当 listResumes() 成功返回空数组时才判定「无现存简历」(请求失败不算)。
   // 随路由变化重拉,使上传解析完成跳转后信息页按钮自动恢复可点。
   const [hasResumes, setHasResumes] = useState<boolean | null>(null);
@@ -91,6 +124,11 @@ function Header() {
   }, [location.pathname]);
 
   const infoDisabled = hasResumes === false;
+
+  const logout = () => {
+    clearSession();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header className="sticky top-0 z-20 border-b border-line/70 bg-bg/80 backdrop-blur-md">
@@ -120,25 +158,51 @@ function Header() {
           <NavLink to="/upload" aria-label="upload" className={navCls}>
             <UploadIcon />
           </NavLink>
+          <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+          <button
+            type="button"
+            onClick={logout}
+            aria-label="logout"
+            className={`${navBase} text-ink-soft hover:bg-black/[0.04] hover:text-accent`}
+          >
+            <LogoutIcon />
+          </button>
         </nav>
       </div>
     </header>
   );
 }
 
-export default function App() {
+/** 受保护区域:未登录一律跳登录页。 */
+function RequireAuth() {
+  return isLoggedIn() ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+/** 已登录主壳:顶栏 + 内容区。Header 仅在此挂载,每次登录全新挂载。 */
+function Shell() {
   return (
     <div className="min-h-screen bg-bg">
       <Header />
       <main className="mx-auto max-w-5xl px-5 pb-24 pt-8 sm:px-8">
-        <Routes>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<Shell />}>
           <Route path="/" element={<InfoPage />} />
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/resume/:resumeId" element={<InfoPage />} />
           <Route path="/interrogations/:interrogationId" element={<InterrogationPage />} />
           <Route path="/interrogations/:interrogationId/guide" element={<GuidePage />} />
-        </Routes>
-      </main>
-    </div>
+        </Route>
+      </Route>
+    </Routes>
   );
 }

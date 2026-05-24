@@ -1,6 +1,16 @@
 // 由 develop_prompt/v01/01_接口契约.md 逐字翻译的 TS 类型。
 // 字段命名与后端 JSON 严格一致(snake_case)。
 
+/* ── v03 登录 ── */
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  session_id: string;
+}
+
 /* ── §1 状态机枚举 ── */
 export type ResumeStatus = 'parsing' | 'parsed' | 'failed';
 export type InterrogationStatus =

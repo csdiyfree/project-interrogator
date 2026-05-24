@@ -1,7 +1,15 @@
-import { getSessionId } from '../lib/session';
+import { clearSession, getSessionId } from '../lib/session';
 import type { AnswerHandlers, ApiErrorBody } from './types';
 
 const BASE = import.meta.env.VITE_API_BASE ?? '';
+
+/** 令牌失效 / 未登录:清会话并回登录页(避免在登录页自身循环跳转)。 */
+function handleUnauthorized(): void {
+  clearSession();
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.assign('/login');
+  }
+}
 
 /** 携带契约 §0 错误码的请求错误。 */
 export class ApiRequestError extends Error {
@@ -41,7 +49,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   const res = await fetch(BASE + path, { ...options, headers });
-  if (!res.ok) throw await readError(res);
+  if (!res.ok) {
+    if (res.status === 401) handleUnauthorized();
+    throw await readError(res);
+  }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
@@ -71,6 +82,7 @@ export async function apiSSE(
   }
 
   if (!res.ok || !res.body) {
+    if (res.status === 401) handleUnauthorized();
     const err = await readError(res);
     handlers.onError?.({ code: err.code, message: err.message });
     return;

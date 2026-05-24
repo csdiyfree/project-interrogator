@@ -9,6 +9,7 @@ import type {
   GuideDetail,
   InterrogationDetail,
   InterrogationStatus,
+  LoginResponse,
   ManuscriptEntry,
   ModelsResponse,
   ProjectDetail,
@@ -334,6 +335,18 @@ function buildResume(): MResume {
   });
   resumes.set(id, resume);
   return resume;
+}
+
+/* ── v03 登录(写死账号,与后端同一组凭据) ── */
+const MOCK_USERS: Record<string, { password: string; session_id: string }> = {
+  admin: { password: 'kaoda-2025-admin', session_id: 'sess-admin-9f3c1a2b8e7d' },
+  guest: { password: 'kaoda-2025-guest', session_id: 'sess-guest-4a6d2e9c1b07' },
+};
+
+export function login(username: string, password: string): Promise<LoginResponse> {
+  const u = MOCK_USERS[username];
+  if (!u || u.password !== password) return reject('invalid_credentials', '账号或密码错误');
+  return sleep(120).then(() => ({ session_id: u.session_id }));
 }
 
 /* ── M1 简历 ── */

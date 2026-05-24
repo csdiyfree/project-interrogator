@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.auth import is_valid_session
 from app.config import settings
 from app.db import init_db
 
@@ -21,18 +22,19 @@ app.add_middleware(
 
 
 def require_session(x_session_id: str | None = Header(None, alias="X-Session-Id")) -> str:
-    if not x_session_id:
+    if not is_valid_session(x_session_id):
         raise HTTPException(
-            status_code=400,
-            detail={"code": "missing_session", "message": "缺少 X-Session-Id 请求头"},
+            status_code=401,
+            detail={"code": "unauthorized", "message": "未登录或登录已失效"},
         )
     return x_session_id
 
 
 # require_session 需先定义,供后续路由在导入时复用。
-from app.routers import guides, interrogations, resumes
+from app.routers import auth, guides, interrogations, resumes
 
 
+app.include_router(auth.router)
 app.include_router(resumes.router)
 app.include_router(interrogations.router)
 app.include_router(guides.router)
