@@ -40,6 +40,7 @@ export interface ProjectInResume {
 
 export interface ResumeDetail {
   id: string;
+  name: string | null;
   status: ResumeStatus;
   summary: ResumeSummary | null;
   projects: ProjectInResume[];
@@ -48,6 +49,18 @@ export interface ResumeDetail {
 
 export interface CreateResumeResponse {
   resume_id: string;
+}
+
+/** GET /api/resumes 列表项(v02 多简历)。 */
+export interface ResumeListItem {
+  id: string;
+  name: string | null;
+  status: ResumeStatus;
+  created_at: string;
+}
+
+export interface ResumesList {
+  resumes: ResumeListItem[];
 }
 
 /* ── §3 M2 拷问 ── */
@@ -62,6 +75,7 @@ export interface InterrogationListItem {
 
 export interface ProjectDetail {
   id: string;
+  resume_id: string;
   name: string;
   raw_description: string;
   order_index: number;

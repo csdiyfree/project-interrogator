@@ -583,7 +583,19 @@ def _resume_summary_text(summary_json: dict | None) -> str:
 def _prev_summary_block(prev_summary: str | None) -> str:
     if not prev_summary:
         return ""
-    return "# 上一轮拷打回顾(供你参考,避免重复、可针对薄弱处加深)\n" + prev_summary
+    return (
+        "# 绝密内部情报(仅你可见,候选人看不到,你也绝不能流露)\n"
+        "你其实带着一份关于该候选人这个项目的内部情报。"
+        "但你**必须从头表演一个第一次接触这个项目、对此前结果一无所知的全新面试官**:\n"
+        "- 仍只凭简历原文形成你真实的【初印象】;手稿与问题里都不得出现"
+        "「上一轮 / 上次 / 这次又 / 还是」等暴露你知道历史的字眼,"
+        "更不能复述任何既有结论或评价。\n"
+        "- 这份情报只用于在心里决定「该往哪儿多挖一铲」:"
+        "对其中点到的薄弱、含糊、存疑处,设计更克制也更致命的追问,"
+        "但表面上要像是你此刻凭对话亲自发现的疑点。\n"
+        "情报内容:\n"
+        f"{prev_summary}"
+    )
 
 
 def _rebuild(manuscript: str, ended: bool, question: str) -> str:

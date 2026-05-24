@@ -29,14 +29,14 @@ export function ManuscriptColumn({ entries, live, streaming, collapsed, onToggle
   const showLive = streaming || live.length > 0;
 
   return (
-    <aside className="lg:sticky lg:top-20 lg:self-start">
+    <aside className="lg:h-full lg:min-h-0">
       {/* 桌面端:折叠后的竖向把手,点按展开 */}
       {collapsed && (
         <button
           type="button"
           onClick={onToggle}
           aria-label="expand-manuscript"
-          className="hidden w-full flex-col items-center gap-3 rounded-lg bg-accent/5 py-5 text-ink-soft transition-colors hover:text-accent lg:flex"
+          className="hidden w-full flex-col items-center justify-center gap-3 rounded-lg bg-accent/5 py-5 text-ink-soft transition-colors hover:text-accent lg:flex lg:h-full"
         >
           <ChevronIcon className="rotate-180" />
           <span className="font-serif text-sm tracking-wider [writing-mode:vertical-rl]">面试官手稿</span>
@@ -44,8 +44,12 @@ export function ManuscriptColumn({ entries, live, streaming, collapsed, onToggle
       )}
 
       {/* 面板:桌面端折叠时隐藏(改用竖把手);移动端始终保留标题,内容随折叠收起 */}
-      <div className={`overflow-hidden rounded-lg bg-accent/5 ${collapsed ? 'lg:hidden' : ''}`}>
-        <header className="flex items-center gap-2.5 px-5 py-4 sm:px-6">
+      <div
+        className={`flex flex-col overflow-hidden rounded-lg bg-accent/5 lg:h-full lg:min-h-0 ${
+          collapsed ? 'lg:hidden' : ''
+        }`}
+      >
+        <header className="flex shrink-0 items-center gap-2.5 px-5 py-4 sm:px-6">
           <span className="text-accent">
             <ManuscriptIcon />
           </span>
@@ -62,7 +66,7 @@ export function ManuscriptColumn({ entries, live, streaming, collapsed, onToggle
 
         <div
           ref={scrollRef}
-          className={`overflow-y-auto px-5 pb-6 pt-1 sm:px-6 lg:max-h-[calc(100vh-13rem)] ${collapsed ? 'hidden' : ''}`}
+          className={`overflow-y-auto px-5 pb-6 pt-1 sm:px-6 lg:min-h-0 lg:flex-1 ${collapsed ? 'hidden' : ''}`}
         >
           {entries.map((m, i) => (
             <div key={m.index} className={i > 0 ? 'mt-6 border-t border-line pt-6' : ''}>

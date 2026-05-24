@@ -25,6 +25,9 @@ dist/
 *.local
 *.tsbuildinfo
 
+# ===== 演示素材(本地用,不入库)=====
+demo/
+
 # ===== 编辑器 / 系统 =====
 .DS_Store
 .claude/

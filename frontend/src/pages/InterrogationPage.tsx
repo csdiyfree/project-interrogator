@@ -10,12 +10,15 @@ import { useSSE } from '../lib/useSSE';
 import type { InterrogationDetail, ProjectDetail } from '../api/types';
 import { Chip, Skeleton, TextArea } from '../design/components';
 import { ManuscriptColumn } from '../features/interrogation/ManuscriptColumn';
+import { ProjectSwitcher } from '../features/interrogation/ProjectSwitcher';
 import {
   AnswerBubble,
+  ArrowLeftIcon,
   Caret,
-  ForwardIcon,
+  CaretDownIcon,
   InterviewerMark,
   QuestionBubble,
+  ReportIcon,
   RetryIcon,
   SendIcon,
   TypingDots,
@@ -31,6 +34,7 @@ export function InterrogationPage() {
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [draft, setDraft] = useState('');
   const [manuscriptCollapsed, setManuscriptCollapsed] = useState(false);
+  const [dropOpen, setDropOpen] = useState(false);
   const lastSubmit = useRef<{ turnIndex: number; text: string } | null>(null);
 
   const sse = useSSE();
@@ -44,6 +48,7 @@ export function InterrogationPage() {
   useEffect(() => {
     setDetail(null);
     setDraft('');
+    setDropOpen(false);
     lastSubmit.current = null;
     sse.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,10 +123,17 @@ export function InterrogationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sse.done]);
 
-  // 对话区自动滚动到底,跟随书写。
-  const bottomRef = useRef<HTMLDivElement>(null);
+  // 自动滚动:滚动「对话列容器」到底(而非整页),保证最新问答与输入框常驻视口。
+  // 桌面端容器内部滚动;移动端容器未溢出时回退为整页滚动。
+  const convRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const el = convRef.current;
+    if (!el) return;
+    if (el.scrollHeight > el.clientHeight + 4) {
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    }
   }, [detail?.turns.length, detail?.ended, sse.streaming, sse.question, sse.closing, sse.error]);
 
   const lastTurn = detail?.turns[detail.turns.length - 1];
@@ -199,114 +211,147 @@ export function InterrogationPage() {
     ? 'lg:grid-cols-[minmax(0,1fr)_1px_3rem]'
     : 'lg:grid-cols-[minmax(0,1.1fr)_1px_minmax(0,0.86fr)]';
 
-  // ── 主体:页眉 + 双栏 ──
+  const navBtn =
+    'flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-all duration-200 enabled:hover:bg-black/[0.04] enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-30';
+
+  // ── 主体:页眉 + 双栏(视口内粘附) ──
   return (
-    <div className="animate-fade-up">
-      <header className="mb-7 flex items-end justify-between gap-4 border-b border-line pb-5">
-        <div className="min-w-0">
+    <div className="flex animate-fade-up flex-col lg:h-[calc(100vh-12rem)]">
+      <header className="mb-6 flex shrink-0 items-end justify-between gap-4 border-b border-line pb-5">
+        <div className="relative min-w-0">
           <p className="mb-1.5 text-xs font-medium tracking-[0.18em] text-accent">项目拷问</p>
-          {project ? (
-            <h1 className="truncate font-serif text-2xl text-ink sm:text-[1.7rem]">{project.name}</h1>
-          ) : (
-            <Skeleton className="h-7 w-64 max-w-full" />
+          <div className="flex items-center gap-2.5">
+            {project ? (
+              <button
+                type="button"
+                onClick={() => setDropOpen((o) => !o)}
+                aria-label="switch-project"
+                className="group flex min-w-0 items-center gap-1.5 text-ink transition-colors hover:text-accent"
+              >
+                <h1 className="truncate font-serif text-2xl sm:text-[1.7rem]">{project.name}</h1>
+                <span className="text-ink-soft group-hover:text-accent">
+                  <CaretDownIcon className={dropOpen ? 'rotate-180' : ''} />
+                </span>
+              </button>
+            ) : (
+              <Skeleton className="h-7 w-64 max-w-full" />
+            )}
+            <Chip className="shrink-0 whitespace-nowrap">{`第 ${detail.round_number} 轮`}</Chip>
+          </div>
+
+          {dropOpen && project && (
+            <ProjectSwitcher
+              resumeId={project.resume_id}
+              currentProjectId={project.id}
+              onClose={() => setDropOpen(false)}
+              onPick={(iid) => {
+                setDropOpen(false);
+                navigate(`/interrogations/${iid}`);
+              }}
+            />
           )}
         </div>
-        <Chip className="shrink-0 whitespace-nowrap">{`第 ${detail.round_number} 轮`}</Chip>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => project && navigate(`/resume/${project.resume_id}`)}
+            disabled={!project}
+            aria-label="back-to-resume"
+            className={navBtn}
+          >
+            <ArrowLeftIcon />
+          </button>
+          <button
+            type="button"
+            onClick={() => detail.ended && navigate(`/interrogations/${id}/guide`)}
+            disabled={!detail.ended}
+            aria-label="view-report"
+            className={navBtn}
+          >
+            <ReportIcon />
+          </button>
+        </div>
       </header>
 
-      <div className={`grid grid-cols-1 gap-7 lg:gap-x-8 ${gridCls}`}>
-      <section className="flex flex-col gap-5">
-        {detail.turns.map((t) => (
-          <div key={t.index} className="flex flex-col gap-5">
-            <QuestionBubble>{t.question}</QuestionBubble>
-            {t.answer !== null && <AnswerBubble>{t.answer}</AnswerBubble>}
+      <div className={`grid min-h-0 flex-1 grid-cols-1 gap-7 lg:gap-x-8 ${gridCls}`}>
+        <section className="flex min-h-0 flex-col">
+          <div ref={convRef} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-1 lg:pr-1">
+            {detail.turns.map((t) => (
+              <div key={t.index} className="flex flex-col gap-5">
+                <QuestionBubble>{t.question}</QuestionBubble>
+                {t.answer !== null && <AnswerBubble>{t.answer}</AnswerBubble>}
+              </div>
+            ))}
+
+            {forming &&
+              (sse.closing ? (
+                <QuestionBubble tone="closing">
+                  {sse.closing}
+                  {sse.streaming && <Caret />}
+                </QuestionBubble>
+              ) : sse.question ? (
+                <QuestionBubble>
+                  {sse.question}
+                  {sse.streaming && <Caret />}
+                </QuestionBubble>
+              ) : (
+                <QuestionBubble>
+                  <TypingDots />
+                </QuestionBubble>
+              ))}
+
+            {detail.ended && detail.closing_message && (
+              <QuestionBubble tone="closing">{detail.closing_message}</QuestionBubble>
+            )}
+
+            {sse.error && (
+              <div className="flex justify-center py-2 animate-fade-in">
+                <button
+                  onClick={retry}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink-soft shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:text-accent"
+                  aria-label="retry"
+                >
+                  <RetryIcon />
+                </button>
+              </div>
+            )}
           </div>
-        ))}
 
-        {forming &&
-          (sse.closing ? (
-            <QuestionBubble tone="closing">
-              {sse.closing}
-              {sse.streaming && <Caret />}
-            </QuestionBubble>
-          ) : sse.question ? (
-            <QuestionBubble>
-              {sse.question}
-              {sse.streaming && <Caret />}
-            </QuestionBubble>
-          ) : (
-            <QuestionBubble>
-              <TypingDots />
-            </QuestionBubble>
-          ))}
+          {pendingTurn && !sse.streaming && !sse.error && (
+            <div className="relative shrink-0 pt-4">
+              <TextArea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={onKeyDown}
+                rows={3}
+                autoFocus
+                className="min-h-[92px] pr-16"
+              />
+              <button
+                onClick={submit}
+                disabled={!draft.trim()}
+                className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-md bg-accent text-white shadow-soft transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="send"
+              >
+                <SendIcon />
+              </button>
+            </div>
+          )}
+        </section>
 
-        {detail.ended && detail.closing_message && (
-          <QuestionBubble tone="closing">{detail.closing_message}</QuestionBubble>
-        )}
+        <div
+          className="hidden self-stretch bg-gradient-to-b from-transparent via-ink-soft/30 to-transparent lg:block"
+          aria-hidden
+        />
 
-        {pendingTurn && !sse.streaming && !sse.error && (
-          <div className="relative animate-fade-up">
-            <TextArea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-              rows={3}
-              autoFocus
-              className="min-h-[92px] pr-16"
-            />
-            <button
-              onClick={submit}
-              disabled={!draft.trim()}
-              className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-md bg-accent text-white shadow-soft transition-all duration-200 enabled:hover:-translate-y-0.5 enabled:hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="send"
-            >
-              <SendIcon />
-            </button>
-          </div>
-        )}
-
-        {sse.error && (
-          <div className="flex justify-center py-2 animate-fade-in">
-            <button
-              onClick={retry}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink-soft shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:text-accent"
-              aria-label="retry"
-            >
-              <RetryIcon />
-            </button>
-          </div>
-        )}
-
-        {detail.ended && (
-          <div className="flex justify-center pt-2 animate-fade-up">
-            <button
-              onClick={() => navigate(`/interrogations/${id}/guide`)}
-              className="group flex h-12 items-center gap-2.5 rounded-full bg-accent px-7 text-white shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105"
-              aria-label="guide"
-            >
-              <span className="h-2 w-2 rounded-full bg-white" />
-              <span className="transition-transform duration-200 group-hover:translate-x-1">
-                <ForwardIcon />
-              </span>
-            </button>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </section>
-
-      <div
-        className="hidden self-stretch bg-gradient-to-b from-transparent via-ink-soft/30 to-transparent lg:block"
-        aria-hidden
-      />
-
-      <ManuscriptColumn
-        entries={detail.manuscript}
-        live={sse.manuscript}
-        streaming={sse.streaming}
-        collapsed={manuscriptCollapsed}
-        onToggle={() => setManuscriptCollapsed((c) => !c)}
-      />
+        <ManuscriptColumn
+          entries={detail.manuscript}
+          live={sse.manuscript}
+          streaming={sse.streaming}
+          collapsed={manuscriptCollapsed}
+          onToggle={() => setManuscriptCollapsed((c) => !c)}
+        />
       </div>
     </div>
   );

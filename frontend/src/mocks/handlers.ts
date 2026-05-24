@@ -14,6 +14,9 @@ import type {
   ProjectDetail,
   ReinterrogateResponse,
   ResumeDetail,
+  ResumeListItem,
+  ResumeStatus,
+  ResumesList,
   Todo,
   Turn,
 } from '../api/types';
@@ -64,7 +67,9 @@ interface MProject {
 }
 interface MResume {
   id: string;
+  name: string;
   created_at_ms: number;
+  created_at_iso: string;
   projects: MProject[];
 }
 
@@ -94,6 +99,32 @@ async function streamText(
 const scriptKeyOf = (it: MInterrogation) => projects.get(it.project_id)!.script_key;
 const latestRound = (p: MProject) =>
   p.interrogations.reduce((a, b) => (b.round_number > a.round_number ? b : a));
+
+/* ── v02 简历命名 ── */
+const CANDIDATE =
+  RESUME_SUMMARY.items.find((i) => i.label === '姓名')?.value ?? RESUME_SUMMARY.headline;
+
+function formatStamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}月${p(d.getDate())}日 ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** 同会话内重名追加 (1)/(2)…。 */
+function uniqueName(base: string): string {
+  const existing = new Set([...resumes.values()].map((r) => r.name));
+  if (!existing.has(base)) return base;
+  let n = 1;
+  while (existing.has(`${base} (${n})`)) n++;
+  return `${base} (${n})`;
+}
+
+function resumeStatus(r: MResume): ResumeStatus {
+  return Date.now() - r.created_at_ms < PARSE_MS ? 'parsing' : 'parsed';
+}
+
+function toListItem(r: MResume): ResumeListItem {
+  return { id: r.id, name: r.name, status: resumeStatus(r), created_at: r.created_at_iso };
+}
 
 function createInterrogation(
   project: MProject,
@@ -259,7 +290,13 @@ function seedProject(
 
 (function seed() {
   const resumeId = 'seed-resume';
-  const resume: MResume = { id: resumeId, created_at_ms: PAST, projects: [] };
+  const resume: MResume = {
+    id: resumeId,
+    name: `示例简历 · ${CANDIDATE}`,
+    created_at_ms: PAST,
+    created_at_iso: nowIso(),
+    projects: [],
+  };
   resumes.set(resumeId, resume);
 
   // 项目一(分割):一轮 ready、可作答 —— FE2 实时 SSE 深链
@@ -281,8 +318,15 @@ function seedProject(
 
 function buildResume(): MResume {
   const id = uid();
-  const createdMs = Date.now();
-  const resume: MResume = { id, created_at_ms: createdMs, projects: [] };
+  const now = new Date();
+  const createdMs = now.getTime();
+  const resume: MResume = {
+    id,
+    name: uniqueName(`${CANDIDATE} ${formatStamp(now)}`),
+    created_at_ms: createdMs,
+    created_at_iso: now.toISOString(),
+    projects: [],
+  };
   PROJECT_TEMPLATES.forEach((tpl, i) => {
     const p = seedProject(uid(), tpl, id, i);
     createInterrogation(p, 1, createdMs, null);
@@ -311,10 +355,11 @@ export function getResume(resumeId: string): Promise<ResumeDetail> {
   if (!r) return reject('not_found', 'resume 不存在');
   return sleep(90).then(() => {
     if (Date.now() - r.created_at_ms < PARSE_MS) {
-      return { id: r.id, status: 'parsing', summary: null, projects: [], error: null };
+      return { id: r.id, name: r.name, status: 'parsing', summary: null, projects: [], error: null };
     }
     return {
       id: r.id,
+      name: r.name,
       status: 'parsed',
       summary: RESUME_SUMMARY,
       projects: r.projects.map((p) => {
@@ -332,6 +377,27 @@ export function getResume(resumeId: string): Promise<ResumeDetail> {
   });
 }
 
+/** 列出运行时创建的简历(排除内置 seed-resume,使全新会话 = 空列表)。 */
+export function listResumes(): Promise<ResumesList> {
+  return sleep(90).then(() => ({
+    resumes: [...resumes.values()]
+      .filter((r) => r.id !== 'seed-resume')
+      .sort((a, b) => b.created_at_ms - a.created_at_ms)
+      .map(toListItem),
+  }));
+}
+
+export function renameResume(resumeId: string, name: string): Promise<ResumeListItem> {
+  const r = resumes.get(resumeId);
+  if (!r) return reject('not_found', 'resume 不存在');
+  const trimmed = name.trim();
+  if (!trimmed) return reject('empty_input', '名称为空');
+  return sleep(80).then(() => {
+    r.name = trimmed;
+    return toListItem(r);
+  });
+}
+
 /* ── M2 拷问 ── */
 export function getProject(projectId: string): Promise<ProjectDetail> {
   const p = projects.get(projectId);
@@ -340,6 +406,7 @@ export function getProject(projectId: string): Promise<ProjectDetail> {
     const sorted = [...p.interrogations].sort((a, b) => b.round_number - a.round_number);
     return {
       id: p.id,
+      resume_id: p.resume_id,
       name: p.name,
       raw_description: p.raw_description,
       order_index: p.order_index,

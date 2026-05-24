@@ -33,11 +33,14 @@ async def create_resume(
     db: Session = Depends(get_db),
 ) -> schemas.CreateResumeResponse:
     source, raw_text = await _read_resume_input(request)
+    created_at = models.utcnow()
     resume = models.Resume(
+        created_at=created_at,
         session_id=session_id,
         source=source,
         raw_text=raw_text,
         status="parsing",
+        name=resume_service.temporary_name(created_at),
     )
     db.add(resume)
     db.commit()
@@ -45,6 +48,22 @@ async def create_resume(
 
     asyncio.create_task(resume_service.parse_resume(resume.id))
     return schemas.CreateResumeResponse(resume_id=resume.id)
+
+
+@router.get("/resumes", response_model=schemas.ResumesList)
+def list_resumes(
+    session_id: str = Depends(_require_session),
+    db: Session = Depends(get_db),
+) -> schemas.ResumesList:
+    resumes = (
+        db.query(models.Resume)
+        .filter(models.Resume.session_id == session_id)
+        .order_by(models.Resume.created_at.desc())
+        .all()
+    )
+    return schemas.ResumesList(
+        resumes=[schemas.ResumeListItem.model_validate(resume) for resume in resumes]
+    )
 
 
 @router.get("/resumes/{resume_id}", response_model=schemas.ResumeDetail)
@@ -67,6 +86,7 @@ def get_resume(
     if resume.status == "parsing":
         return schemas.ResumeDetail(
             id=resume.id,
+            name=resume.name,
             status=resume.status,
             summary=None,
             projects=[],
@@ -111,11 +131,43 @@ def get_resume(
 
     return schemas.ResumeDetail(
         id=resume.id,
+        name=resume.name,
         status=resume.status,
         summary=summary,
         projects=projects,
         error=resume.error,
     )
+
+
+@router.patch("/resumes/{resume_id}", response_model=schemas.ResumeListItem)
+def rename_resume(
+    resume_id: str,
+    payload: schemas.ResumeRename,
+    session_id: str = Depends(_require_session),
+    db: Session = Depends(get_db),
+) -> schemas.ResumeListItem:
+    resume = (
+        db.query(models.Resume)
+        .filter(models.Resume.id == resume_id, models.Resume.session_id == session_id)
+        .first()
+    )
+    if resume is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "not_found", "message": "简历不存在"},
+        )
+
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "empty_input", "message": "简历名称不能为空"},
+        )
+
+    resume.name = name
+    db.commit()
+    db.refresh(resume)
+    return schemas.ResumeListItem.model_validate(resume)
 
 
 async def _read_resume_input(request: Request) -> tuple[str, str]:

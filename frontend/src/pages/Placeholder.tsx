@@ -1,6 +1,6 @@
 // 占位视觉:居中、呼吸式徽标,无任何文案。FE1/2/3 各自替换对应页面后即弃用。
 
-type Variant = 'resume' | 'interrogation' | 'guide';
+type Variant = 'resume' | 'interrogation' | 'guide' | 'info' | 'upload';
 
 const PATHS: Record<Variant, string> = {
   // 文档 / 简历
@@ -9,6 +9,10 @@ const PATHS: Record<Variant, string> = {
   interrogation: 'M5 6h14v9H10l-4 3v-3H5a0 0 0 0 1 0 0V6Z',
   // 三灯 / 指南(用同心弧近似)
   guide: 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 4v4l2.5 2.5',
+  // 列表 / 信息页
+  info: 'M4 6h16M4 12h16M4 18h10',
+  // 上传箭头 / 上传页
+  upload: 'M12 16V5m0 0L7.5 9.5M12 5l4.5 4.5M5 19h14',
 };
 
 export function PlaceholderEmblem({ variant }: { variant: Variant }) {

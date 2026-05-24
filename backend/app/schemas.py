@@ -53,10 +53,26 @@ class ProjectInResume(APIModel):
 
 class ResumeDetail(APIModel):
     id: str
+    name: str | None = None
     status: str
     summary: ResumeSummary | None = None
     projects: list[ProjectInResume]
     error: str | None = None
+
+
+class ResumeListItem(APIModel):
+    id: str
+    name: str | None = None
+    status: str
+    created_at: datetime
+
+
+class ResumesList(APIModel):
+    resumes: list[ResumeListItem]
+
+
+class ResumeRename(APIModel):
+    name: str
 
 
 class CreateResumeText(APIModel):
@@ -78,6 +94,7 @@ class InterrogationBrief(APIModel):
 
 class ProjectDetail(APIModel):
     id: str
+    resume_id: str
     name: str
     raw_description: str
     order_index: int

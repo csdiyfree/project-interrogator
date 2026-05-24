@@ -79,6 +79,44 @@ function ReplayIcon({ size = 22 }: { size?: number }) {
   );
 }
 
+/** 返回信息页:左向箭头。 */
+function ArrowLeftIcon({ size = 19 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M19 12H5M11 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+/** 返回本轮拷问:对话气泡,呼应拷问页。 */
+function ChatIcon({ size = 19 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5 5.5h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-8l-4 3v-3H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z" />
+    </svg>
+  );
+}
+
 /** 生成中的三灯占位:与 TrafficLight 同形,呼吸渐入,过渡无缝、无文字。 */
 function WaitingLights() {
   return (
@@ -204,9 +242,28 @@ export function GuidePage() {
   return (
     <div className="mx-auto max-w-3xl animate-fade-in space-y-8">
       {project && (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="font-serif text-xl text-ink">{project.name}</h1>
-          {guided.length >= 2 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-1 text-ink-soft">
+            <button
+              type="button"
+              onClick={() => navigate(`/resume/${project.resume_id}`)}
+              aria-label="返回信息页"
+              className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:-translate-x-0.5 hover:bg-black/[0.04] hover:text-ink"
+            >
+              <ArrowLeftIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/interrogations/${id}`)}
+              aria-label="返回本轮拷问"
+              className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:bg-black/[0.04] hover:text-ink"
+            >
+              <ChatIcon />
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h1 className="font-serif text-xl text-ink">{project.name}</h1>
+            {guided.length >= 2 && (
             <div className="flex items-center gap-2">
               {guided.map((it) => {
                 const active = it.id === id;
@@ -227,8 +284,9 @@ export function GuidePage() {
                   </button>
                 );
               })}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

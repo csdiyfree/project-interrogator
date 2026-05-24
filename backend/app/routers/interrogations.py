@@ -113,6 +113,7 @@ def get_project(
     )
     return schemas.ProjectDetail(
         id=project.id,
+        resume_id=project.resume_id,
         name=project.name,
         raw_description=project.raw_description,
         order_index=project.order_index,

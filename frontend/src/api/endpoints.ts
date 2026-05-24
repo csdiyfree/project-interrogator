@@ -12,6 +12,8 @@ import type {
   ProjectDetail,
   ReinterrogateResponse,
   ResumeDetail,
+  ResumeListItem,
+  ResumesList,
   Todo,
 } from './types';
 
@@ -33,6 +35,19 @@ export function createResumeFile(file: File): Promise<CreateResumeResponse> {
 export function getResume(resumeId: string): Promise<ResumeDetail> {
   if (USE_MOCK) return mock.getResume(resumeId);
   return apiFetch(`/api/resumes/${resumeId}`);
+}
+
+export function listResumes(): Promise<ResumesList> {
+  if (USE_MOCK) return mock.listResumes();
+  return apiFetch('/api/resumes');
+}
+
+export function renameResume(resumeId: string, name: string): Promise<ResumeListItem> {
+  if (USE_MOCK) return mock.renameResume(resumeId, name);
+  return apiFetch(`/api/resumes/${resumeId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
 }
 
 /* ── M2 拷问 ── */
