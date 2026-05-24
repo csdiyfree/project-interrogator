@@ -1,0 +1,32 @@
+# ===== 密钥 / 环境变量(切勿提交)=====
+.env
+.env.*
+!.env.example
+
+# ===== Python(后端)=====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ===== 数据库 =====
+*.db
+*.sqlite3
+backend/data/*.db
+
+# ===== Node(前端)=====
+node_modules/
+dist/
+.vite/
+*.local
+
+# ===== 编辑器 / 系统 =====
+.DS_Store
+.idea/
+.vscode/
+*.log
+.Rhistory
