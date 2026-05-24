@@ -1,0 +1,35 @@
+:root {
+  /* 色板 —— 温暖纸感 + 克制暖色点缀 */
+  --bg: #faf6f0;          /* 纸感暖白(页面底) */
+  --surface: #ffffff;     /* 卡片面 */
+  --line: #ece4d9;        /* 极淡暖灰描边 */
+  --ink: #2c2620;         /* 主文字(暖墨) */
+  --ink-soft: #6e655b;    /* 次要文字 */
+  --accent: #c2683d;      /* 主点缀(暖陶土 / 琥珀) */
+  --accent-2: #3e6f6a;    /* 科技感冷绿(克制) */
+  --green: #4f9d69;       /* 绿灯 */
+  --amber: #e0a33e;       /* 黄灯 */
+  --red: #c5503e;         /* 红灯 */
+
+  /* RGB 通道版(空格分隔)—— 供 Tailwind 用 rgb(var(--x-rgb) / <alpha-value>)
+     支持 /透明度 修饰符(bg-accent/10、border-line/70 等)。与上方十六进制保持同色。 */
+  --bg-rgb: 250 246 240;
+  --surface-rgb: 255 255 255;
+  --line-rgb: 236 228 217;
+  --ink-rgb: 44 38 32;
+  --ink-soft-rgb: 110 101 91;
+  --accent-rgb: 194 104 61;
+  --accent-2-rgb: 62 111 106;
+  --green-rgb: 79 157 105;
+  --amber-rgb: 224 163 62;
+  --red-rgb: 197 80 62;
+
+  /* 圆角 */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+
+  /* 阴影 */
+  --shadow-soft: 0 8px 30px rgba(70, 50, 30, 0.08);
+  --shadow-soft-lg: 0 16px 50px rgba(70, 50, 30, 0.12);
+}
